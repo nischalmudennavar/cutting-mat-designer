@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Maximize,
   Compass,
@@ -11,10 +11,10 @@ import {
   Download,
   Menu,
   X,
-  BookOpen,
-  MousePointer,
-  Ruler,
-  FileCheck,
+  Smile,
+  Upload,
+  Trash2,
+  HelpCircle,
 } from "lucide-react";
 import {
   CuttingMatProps,
@@ -23,6 +23,7 @@ import {
   UnitType,
   BorderRadiusMode,
   ProtractorRepeatMode,
+  StickerItem,
 } from "./CuttingMat";
 import { Button } from "./ui/Button";
 import { SegmentedControl } from "./ui/SegmentedControl";
@@ -34,14 +35,27 @@ import { ColorPicker } from "./ui/ColorPicker";
 import { NumberInput } from "./ui/NumberInput";
 import { Accordion } from "./ui/Accordion";
 
+const EMOJI_PALETTE = [
+  "✂️", "📏", "📐", "✏️", "🏷️", "☕", "🎨", "🚀", "⭐", "🔥",
+  "🎯", "🛠️", "🪵", "💡", "⚡", "🧵", "🐱", "🌸", "🍀", "💎"
+];
+
 interface SidebarProps {
   props: CuttingMatProps;
   onChangeProps: (updater: (prev: CuttingMatProps) => CuttingMatProps) => void;
   onCenter: () => void;
   onExport: (type: "svg" | "png" | "jpg" | "pdf") => void;
+  onOpenGuide: () => void;
   zoom: number;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
+  stickers: StickerItem[];
+  activeStickerId: string | null;
+  onAddSticker: (type: "emoji" | "image", content: string) => void;
+  onUpdateSticker: (id: string, updates: Partial<StickerItem>) => void;
+  onDeleteSticker: (id: string) => void;
+  onSelectSticker: (id: string | null) => void;
+  onClearStickers: () => void;
 }
 
 export function Sidebar({
@@ -49,12 +63,21 @@ export function Sidebar({
   onChangeProps,
   onCenter,
   onExport,
+  onOpenGuide,
   zoom,
   isOpen,
   setIsOpen,
+  stickers,
+  activeStickerId,
+  onAddSticker,
+  onUpdateSticker,
+  onDeleteSticker,
+  onSelectSticker,
+  onClearStickers,
 }: SidebarProps) {
   const [activeSection, setActiveSection] = useState<string | null>("dimensions");
   const [snapToGrid, setSnapToGrid] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const toggleSection = (section: string) => {
     setActiveSection(activeSection === section ? null : section);
@@ -168,6 +191,21 @@ export function Sidebar({
     }));
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        onAddSticker("image", dataUrl);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
   const baseBorderOffset = getBaseBorder(props.unit);
   const borderOffset = Math.min(baseBorderOffset, props.width / 4, props.height / 4);
   const maxProtractorRadius =
@@ -181,6 +219,8 @@ export function Sidebar({
     1,
     props.unit === "px" ? Math.floor(maxProtractorRadius) : Math.floor(maxProtractorRadius * 10) / 10
   );
+
+  const activeSticker = stickers.find((s) => s.id === activeStickerId);
 
   return (
     <>
@@ -212,6 +252,14 @@ export function Sidebar({
               <Button
                 size="icon"
                 variant="ghost"
+                onClick={onOpenGuide}
+                title="How to Guide (?)"
+              >
+                <HelpCircle className="w-4 h-4 text-emerald-400 hover:text-emerald-300" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
                 onClick={onCenter}
                 title="Fit to Screen"
               >
@@ -239,57 +287,6 @@ export function Sidebar({
 
         {/* Accordion Panels */}
         <div className="flex-1 overflow-y-auto divide-y divide-zinc-800">
-          {/* SECTION 0: How to Guide */}
-          <Accordion
-            id="guide"
-            title="How to Guide"
-            icon={<BookOpen className="w-4 h-4 text-cyan-400" />}
-            isOpen={activeSection === "guide"}
-            onToggle={() => toggleSection("guide")}
-          >
-            <div className="space-y-3 text-zinc-300">
-              <div className="flex items-start gap-2.5 bg-zinc-800/40 p-2.5 rounded-xl border border-zinc-800">
-                <MousePointer className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
-                <div className="space-y-0.5">
-                  <p className="font-semibold text-white text-[11px]">Navigate Canvas</p>
-                  <p className="text-[10px] text-zinc-400 leading-normal">
-                    Click and drag anywhere on the canvas to pan. Use your mouse scroll wheel to zoom in and out smoothly.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5 bg-zinc-800/40 p-2.5 rounded-xl border border-zinc-800">
-                <Ruler className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                <div className="space-y-0.5">
-                  <p className="font-semibold text-white text-[11px]">Custom Dimensions & Units</p>
-                  <p className="text-[10px] text-zinc-400 leading-normal">
-                    Switch between Inches, Metric (cm), Fine (mm), or Pixels (px). Enable "Snap to Grid" to maintain standard symmetrical margins.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5 bg-zinc-800/40 p-2.5 rounded-xl border border-zinc-800">
-                <Compass className="w-4 h-4 text-purple-400 flex-shrink-0 mt-0.5" />
-                <div className="space-y-0.5">
-                  <p className="font-semibold text-white text-[11px]">Protractors & Repeats</p>
-                  <p className="text-[10px] text-zinc-400 leading-normal">
-                    Add angle guidelines or repeat protractors across Dual Corners, 4 Corners, Dual Centers, or Concentric Multi-Rings.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5 bg-zinc-800/40 p-2.5 rounded-xl border border-zinc-800">
-                <FileCheck className="w-4 h-4 text-indigo-400 flex-shrink-0 mt-0.5" />
-                <div className="space-y-0.5">
-                  <p className="font-semibold text-white text-[11px]">Export High-Res Files</p>
-                  <p className="text-[10px] text-zinc-400 leading-normal">
-                    Export exact vector SVG files or print-ready raster formats (300 DPI PNG, JPG, and real-scale PDF).
-                  </p>
-                </div>
-              </div>
-            </div>
-          </Accordion>
-
           {/* SECTION 1: Dimensions & Presets */}
           <Accordion
             id="dimensions"
@@ -449,7 +446,154 @@ export function Sidebar({
             </div>
           </Accordion>
 
-          {/* SECTION 2: Color Palette */}
+          {/* SECTION 2: Stickers & Decals */}
+          <Accordion
+            id="stickers"
+            title="Stickers & Decals"
+            icon={<Smile className="w-4 h-4 text-yellow-400" />}
+            isOpen={activeSection === "stickers"}
+            onToggle={() => toggleSection("stickers")}
+          >
+            {/* Emoji Palette */}
+            <div className="space-y-2">
+              <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                Add Craft Emojis
+              </label>
+              <div className="grid grid-cols-5 gap-1.5 p-2 bg-zinc-800/40 rounded-2xl border border-zinc-800">
+                {EMOJI_PALETTE.map((emoji, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => onAddSticker("emoji", emoji)}
+                    className="p-2 hover:bg-zinc-700/60 rounded-xl text-lg flex items-center justify-center transition-transform hover:scale-125 cursor-pointer active:scale-95"
+                    title={`Add ${emoji}`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom SVG/PNG Upload */}
+            <div className="pt-2 border-t border-zinc-800 space-y-2">
+              <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                Upload Custom Sticker (SVG / PNG)
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png, image/svg+xml, image/jpeg, image/webp"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+              <Button
+                variant="outline"
+                className="w-full justify-center gap-2"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="w-4 h-4 text-emerald-400" />
+                <span>Upload SVG / PNG Decal</span>
+              </Button>
+            </div>
+
+            {/* Active Selected Sticker Controls */}
+            {activeSticker && (
+              <div className="pt-2 border-t border-zinc-800 space-y-3 bg-zinc-800/20 p-2.5 rounded-2xl border border-zinc-800">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-zinc-200">
+                    Selected Sticker
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    onClick={() => onDeleteSticker(activeSticker.id)}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete</span>
+                  </Button>
+                </div>
+
+                <Slider
+                  label="Size"
+                  min={20}
+                  max={200}
+                  step={2}
+                  unit="px"
+                  value={activeSticker.size}
+                  onChange={(size) => onUpdateSticker(activeSticker.id, { size })}
+                />
+
+                <Slider
+                  label="Rotation"
+                  min={0}
+                  max={360}
+                  step={5}
+                  unit="°"
+                  value={activeSticker.rotation || 0}
+                  onChange={(rotation) => onUpdateSticker(activeSticker.id, { rotation })}
+                />
+              </div>
+            )}
+
+            {/* Placed Stickers List */}
+            {stickers.length > 0 && (
+              <div className="pt-2 border-t border-zinc-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                    Placed Stickers ({stickers.length})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={onClearStickers}
+                    className="text-[10px] text-rose-400 hover:text-rose-300 font-semibold cursor-pointer"
+                  >
+                    Clear All
+                  </button>
+                </div>
+
+                <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                  {stickers.map((stk, i) => (
+                    <div
+                      key={stk.id}
+                      onClick={() => onSelectSticker(stk.id)}
+                      className={`flex items-center justify-between p-2 rounded-xl border transition-colors cursor-pointer ${
+                        stk.id === activeStickerId
+                          ? "bg-emerald-600/15 border-emerald-500/50 text-white"
+                          : "bg-zinc-800/40 border-zinc-800 hover:bg-zinc-800/70 text-zinc-300"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        {stk.type === "emoji" ? (
+                          <span className="text-base">{stk.content}</span>
+                        ) : (
+                          <img
+                            src={stk.content}
+                            alt="Sticker"
+                            className="w-5 h-5 object-contain rounded"
+                          />
+                        )}
+                        <span className="text-[11px] font-medium">
+                          Sticker #{i + 1} ({Math.round(stk.size)}px)
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteSticker(stk.id);
+                        }}
+                        className="text-zinc-500 hover:text-rose-400 p-1 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Accordion>
+
+          {/* SECTION 3: Color Palette */}
           <Accordion
             id="colors"
             title="Color Themes"
@@ -496,7 +640,7 @@ export function Sidebar({
             </div>
           </Accordion>
 
-          {/* SECTION 3: Grid & Ticks */}
+          {/* SECTION 4: Grid & Ticks */}
           <Accordion
             id="grid"
             title="Grid & Technical Ticks"
@@ -530,17 +674,24 @@ export function Sidebar({
               ]}
             />
 
-            <div className="pt-2 border-t border-zinc-800">
+            <div className="pt-2 border-t border-zinc-800 space-y-2">
               <Switch
                 label="Ticks Along Grid Lines"
                 description="Draftsman cross-ticks across intersections"
                 checked={props.tickMarksOnGrid}
                 onChange={(checked) => updateProp("tickMarksOnGrid", checked)}
               />
+
+              <Switch
+                label="Label Background Containers"
+                description="High-contrast badges behind numbers and words"
+                checked={props.labelBackgrounds ?? true}
+                onChange={(checked) => updateProp("labelBackgrounds", checked)}
+              />
             </div>
           </Accordion>
 
-          {/* SECTION 4: Protractor & Repeat Mode */}
+          {/* SECTION 5: Protractor & Repeat Mode */}
           <Accordion
             id="protractor"
             title="Protractor & Repeat Modes"
@@ -607,7 +758,7 @@ export function Sidebar({
             </div>
           </Accordion>
 
-          {/* SECTION 5: Branding & Typography */}
+          {/* SECTION 6: Branding & Typography */}
           <Accordion
             id="branding"
             title="Branding & 10 Fonts"
@@ -615,57 +766,68 @@ export function Sidebar({
             isOpen={activeSection === "branding"}
             onToggle={() => toggleSection("branding")}
           >
-            <Input
-              label="Brand Label"
-              type="text"
-              placeholder="Enter brand name..."
-              value={props.brandingText}
-              onChange={(e) => updateProp("brandingText", e.target.value)}
+            <Switch
+              label="Enable Branding Label"
+              description="Displays brand text badge and mat specifications"
+              checked={props.showBranding ?? true}
+              onChange={(checked) => updateProp("showBranding", checked)}
             />
 
-            <Dropdown<string>
-              label="Font Family (10 Options)"
-              value={props.brandingFont}
-              onChange={(font) => updateProp("brandingFont", font)}
-              options={FONT_OPTIONS.map((f) => ({ value: f.id, label: f.name }))}
-            />
+            {props.showBranding && (
+              <>
+                <Input
+                  label="Brand Label"
+                  type="text"
+                  placeholder="Enter brand name..."
+                  value={props.brandingText}
+                  onChange={(e) => updateProp("brandingText", e.target.value)}
+                />
 
-            <div className="grid grid-cols-2 gap-3">
-              <Dropdown<CuttingMatProps["brandingPosition"]>
-                label="Position"
-                value={props.brandingPosition}
-                onChange={(pos) => updateProp("brandingPosition", pos)}
-                options={[
-                  { value: "bottom-right", label: "Bottom Right" },
-                  { value: "top-left", label: "Top Left" },
-                  { value: "top-right", label: "Top Right" },
-                  { value: "bottom-left", label: "Bottom Left" },
-                  { value: "center", label: "Center" },
-                ]}
-              />
+                <Dropdown<string>
+                  label="Font Family (10 Options)"
+                  value={props.brandingFont}
+                  onChange={(font) => updateProp("brandingFont", font)}
+                  options={FONT_OPTIONS.map((f) => ({ value: f.id, label: f.name }))}
+                />
 
-              <NumberInput
-                label="Scale Multiplier"
-                min={0.3}
-                max={4.0}
-                step={0.1}
-                value={props.brandingSize}
-                onChange={(size) => updateProp("brandingSize", size)}
-              />
-            </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Dropdown<CuttingMatProps["brandingPosition"]>
+                    label="Position"
+                    value={props.brandingPosition}
+                    onChange={(pos) => updateProp("brandingPosition", pos)}
+                    options={[
+                      { value: "bottom-right", label: "Bottom Right" },
+                      { value: "top-left", label: "Top Left" },
+                      { value: "top-right", label: "Top Right" },
+                      { value: "bottom-left", label: "Bottom Left" },
+                      { value: "center", label: "Center" },
+                    ]}
+                  />
 
-            <Slider
-              label="Branding Opacity"
-              min={0.1}
-              max={1.0}
-              step={0.05}
-              value={props.brandingOpacity}
-              onChange={(val) => updateProp("brandingOpacity", val)}
-              formatValue={(v) => `${Math.round(v * 100)}%`}
-            />
+                  <NumberInput
+                    label="Scale Multiplier"
+                    min={0.3}
+                    max={4.0}
+                    step={0.1}
+                    value={props.brandingSize}
+                    onChange={(size) => updateProp("brandingSize", size)}
+                  />
+                </div>
+
+                <Slider
+                  label="Branding Opacity"
+                  min={0.1}
+                  max={1.0}
+                  step={0.05}
+                  value={props.brandingOpacity}
+                  onChange={(val) => updateProp("brandingOpacity", val)}
+                  formatValue={(v) => `${Math.round(v * 100)}%`}
+                />
+              </>
+            )}
           </Accordion>
 
-          {/* SECTION 6: High Resolution Exports */}
+          {/* SECTION 7: High Resolution Exports */}
           <Accordion
             id="exports"
             title="Export Studio"
@@ -691,6 +853,29 @@ export function Sidebar({
               </Button>
             </div>
           </Accordion>
+        </div>
+
+        {/* Sidebar Footer with Author & GitHub Links */}
+        <div className="p-3 border-t border-zinc-800/80 bg-zinc-950/70 text-[10px] text-zinc-400 flex items-center justify-between">
+          <span>
+            Crafted by{" "}
+            <a
+              href="https://nischal.dev"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-zinc-200 hover:text-emerald-400 font-semibold underline underline-offset-2 transition-colors"
+            >
+              Nischal
+            </a>
+          </span>
+          <a
+            href="https://github.com/nischalmudennavar/cutting-mat-designer"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-zinc-400 hover:text-white transition-colors"
+          >
+            GitHub
+          </a>
         </div>
       </div>
     </>

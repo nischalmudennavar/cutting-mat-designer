@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# cutting mat designer
 
-## Getting Started
+> A parametric vector studio for designing custom self-healing craft and drafting cutting mats with high-precision grid mathematics, draggable decals, multi-anchor protractors, and multi-format exports.
 
-First, run the development server:
+Built by **[Nischal Mudennavar](https://nischal.dev)** • [GitHub Repository](https://github.com/nischalmudennavar/cutting-mat-designer)
+
+---
+
+## ✨ Features
+
+* **📐 Parametric Dimension Engine**: Design in **Inches (`in`)**, **Metric (`cm`)**, **Fine (`mm`)**, or **Pixels (`px`)**.
+* **🧲 Symmetric Gap-Free Grid Math**: Eliminates partial or awkward trailing grid gaps using mathematical margin balancing ($B_x, B_y$).
+* **🎨 Astryx UI Architecture**: 100% custom, dark-theme component primitives inspired by Meta's Astryx design system (`Dropdown`, `Switch`, `ColorPicker`, `NumberInput`, `SegmentedControl`, `Slider`, `Button`, `Modal`).
+* **🧭 Repeated Protractor Engine**: Degree arcs with 1°/5°/10° ticks and 30°/45°/60° diagonal guidelines with 5 repetition modes (*Single*, *Dual Corners*, *4 Corners*, *Dual Center*, *Concentric Multi-Rings*) and strict boundary clamping.
+* **🏷️ Draggable Decals & Emojis**: Add workshop emojis or upload custom SVG/PNG images with on-canvas pointer dragging, boundary constraints, and realistic depth drop shadows.
+* **✍️ 10 System Typography Stacks**: Personalize branding badges with scalable multipliers and custom visibility toggles.
+* **💾 Multi-Format Export Studio**:
+  - Vector `.svg` for laser cutters and CAD
+  - Print-quality 300 DPI `.png` and `.jpg`
+  - Real-scale physical `.pdf` documents
+
+---
+
+## 🚀 Quick Start
 
 ```bash
+# Clone repository
+git clone https://github.com/nischalmudennavar/cutting-mat-designer.git
+cd cutting-mat-designer
+
+# Install dependencies
+npm install
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to start designing.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🤖 For AI Coding Agents
 
-## Learn More
+If you are an AI assistant or autonomous coding agent onboarding to this repository, please read **[CONTEXT.md](./CONTEXT.md)** for critical mathematical invariants, coordinate scaling formulas, and architectural rules.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 👥 Contributing
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+We welcome contributions from developers and makers! Please read **[CONTRIBUTING.md](./CONTRIBUTING.md)** for setup instructions and contribution workflows.
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 👤 Author & License
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+* **Author**: [Nischal Mudennavar](https://nischal.dev)
+* **GitHub**: [@nischalmudennavar](https://github.com/nischalmudennavar)
+* **Project**: [cutting-mat-designer](https://github.com/nischalmudennavar/cutting-mat-designer)
+* **License**: MIT
