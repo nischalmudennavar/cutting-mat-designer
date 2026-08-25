@@ -192,7 +192,7 @@ export default function Home() {
     };
   };
 
-  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleCanvasMouseMove = (e: React.MouseEvent) => {
     if (draggingRef.current) {
       const { id, startClientX, startClientY, startX, startY } = draggingRef.current;
       const dx = (e.clientX - startClientX) / zoom;
@@ -215,12 +215,12 @@ export default function Home() {
     handleMouseMove(e);
   };
 
-  const handleCanvasMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleCanvasMouseUp = () => {
     if (draggingRef.current) {
       draggingRef.current = null;
       return;
     }
-    handleMouseUp(e);
+    handleMouseUp();
   };
 
   // 7. File Export Handler (SVG, PNG, JPG, PDF)
