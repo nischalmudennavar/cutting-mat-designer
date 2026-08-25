@@ -1,6 +1,13 @@
 {
   "name": "cutting-mat-designer",
   "version": "0.1.0",
+  "description": "A parametric studio for designing custom self-healing craft and drafting cutting mats.",
+  "author": "Nischal Mudennavar <https://nischal.dev>",
+  "homepage": "https://nischal.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nischalmudennavar/cutting-mat-designer.git"
+  },
   "private": true,
   "scripts": {
     "dev": "next dev",

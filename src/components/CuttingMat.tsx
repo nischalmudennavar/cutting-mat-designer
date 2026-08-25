@@ -11,6 +11,16 @@ export type ProtractorRepeatMode =
   | "dual-center"
   | "concentric-rings";
 
+export interface StickerItem {
+  id: string;
+  type: "emoji" | "image";
+  content: string;
+  x: number;
+  y: number;
+  size: number;
+  rotation?: number;
+}
+
 export interface CuttingMatProps {
   width: number;
   height: number;
@@ -19,11 +29,13 @@ export interface CuttingMatProps {
   gridOpacity: number;
   miniSubdivisions: number;
   tickMarksOnGrid: boolean;
+  labelBackgrounds?: boolean;
   showProtractor: boolean;
   protractorRadius: number;
   protractorPosition: "center" | "bottom-center" | "bottom-left" | "bottom-right";
   protractorRepeatMode?: ProtractorRepeatMode;
   showDiagonals: boolean;
+  showBranding?: boolean;
   brandingText: string;
   brandingFont: string;
   brandingSize: number;
@@ -31,6 +43,9 @@ export interface CuttingMatProps {
   brandingOpacity: number;
   matColor: string;
   gridColor: string;
+  stickers?: StickerItem[];
+  activeStickerId?: string | null;
+  onStickerPointerDown?: (id: string, e: React.PointerEvent) => void;
 }
 
 export const FONT_OPTIONS = [
@@ -65,11 +80,13 @@ export const CuttingMat = memo(
       gridOpacity,
       miniSubdivisions,
       tickMarksOnGrid,
+      labelBackgrounds = true,
       showProtractor,
       protractorRadius,
       protractorPosition,
       protractorRepeatMode = "single",
       showDiagonals,
+      showBranding = true,
       brandingText,
       brandingFont,
       brandingSize,
@@ -77,6 +94,9 @@ export const CuttingMat = memo(
       brandingOpacity,
       matColor,
       gridColor,
+      stickers = [],
+      activeStickerId,
+      onStickerPointerDown,
     } = props;
 
     // Pixel scaling
@@ -101,11 +121,11 @@ export const CuttingMat = memo(
     const majorStepUnits = unit === "mm" ? 10 : unit === "px" ? 100 : 1;
     const majorStepPx = majorStepUnits * unitScale;
 
-    // Exact integer grid cells (eliminates any partial or weird fractional gaps)
+    // Exact integer grid cells
     const stepsX = Math.max(1, Math.floor((wPx - 2 * minBorderPx) / majorStepPx));
     const stepsY = Math.max(1, Math.floor((hPx - 2 * minBorderPx) / majorStepPx));
 
-    // Balanced symmetric margins on left/right and top/bottom
+    // Balanced symmetric margins
     const bxPx = Math.round(((wPx - stepsX * majorStepPx) / 2) * 10) / 10;
     const byPx = Math.round(((hPx - stepsY * majorStepPx) / 2) * 10) / 10;
 
@@ -162,7 +182,7 @@ export const CuttingMat = memo(
         majorD += `M ${bxPx} ${y} L ${wPx - bxPx} ${y} `;
 
         // Left & Right Ticks
-        tickD += `M ${bxPx} ${y} L ${bxPx - 12} ${y} M ${wPx - bxPx} ${y} L ${wPx - bxPx + 12} ${y} `;
+        tickD += `M ${bxPx} ${y} L ${bxPx - 12} ${y} M ${wPx - bxPx} ${y} L ${wPx - bxPx + 12} `;
 
         if (j < stepsY && subdivs > 1) {
           for (let s = 1; s < subdivs; s++) {
@@ -171,7 +191,7 @@ export const CuttingMat = memo(
 
             const isHalf = subdivs % 2 === 0 && s === subdivs / 2;
             const tLen = isHalf ? 8 : 5;
-            tickD += `M ${bxPx} ${subY} L ${bxPx - tLen} ${subY} M ${wPx - bxPx} ${subY} L ${wPx - bxPx + tLen} ${subY} `;
+            tickD += `M ${bxPx} ${subY} L ${bxPx - tLen} ${subY} M ${wPx - bxPx} ${subY} L ${wPx - bxPx + tLen} `;
           }
         }
       }
@@ -206,7 +226,7 @@ export const CuttingMat = memo(
       };
     }, [bxPx, byPx, hPx, wPx, majorStepPx, stepsX, stepsY, subdivs, subdivStepPx, tickMarksOnGrid]);
 
-    // 2. Multi-Protractor Generator with Repeat Modes
+    // 2. Multi-Protractor Generator
     const { protractorPath, protractorDiagonalsPath, protractorLabels, originPoints } =
       useMemo(() => {
         if (!showProtractor) {
@@ -218,7 +238,6 @@ export const CuttingMat = memo(
           };
         }
 
-        // Define protractor anchors based on repeat mode
         interface ProtractorAnchor {
           cx: number;
           cy: number;
@@ -235,7 +254,6 @@ export const CuttingMat = memo(
         const maxRadHalf = Math.min((wPx - 2 * bxPx) / 2 / unitScale, (hPx - 2 * byPx) / unitScale);
 
         if (protractorRepeatMode === "dual-bottom") {
-          // Bottom-Left (0°-90°) and Bottom-Right (90°-180°)
           anchors.push({
             cx: bxPx,
             cy: hPx - byPx,
@@ -253,7 +271,6 @@ export const CuttingMat = memo(
             maxRadiusUnits: maxRadCorner,
           });
         } else if (protractorRepeatMode === "four-corners") {
-          // 4 Corners (All Quadrants)
           anchors.push({
             cx: bxPx,
             cy: hPx - byPx,
@@ -287,7 +304,6 @@ export const CuttingMat = memo(
             maxRadiusUnits: maxRadCorner,
           });
         } else if (protractorRepeatMode === "dual-center") {
-          // Top & Bottom Centers
           anchors.push({
             cx: wPx / 2,
             cy: hPx - byPx,
@@ -305,7 +321,6 @@ export const CuttingMat = memo(
             maxRadiusUnits: maxRadHalf,
           });
         } else {
-          // Single Anchor (or concentric rings)
           let cx = wPx / 2;
           let cy = hPx - byPx;
           let startAngle = 0;
@@ -357,7 +372,6 @@ export const CuttingMat = memo(
           const safeRadiusUnits = Math.max(0.5, Math.min(protractorRadius, anc.maxRadiusUnits));
           const baseRPx = safeRadiusUnits * unitScale;
 
-          // Handle concentric multi-ring repeat
           const ringScales = protractorRepeatMode === "concentric-rings" ? [1.0, 0.66, 0.33] : [1.0];
 
           ringScales.forEach((ringFactor, ringIdx) => {
@@ -391,7 +405,6 @@ export const CuttingMat = memo(
               }
             }
 
-            // Ticks
             const showMinor = rPx > 90;
             for (let a = anc.startAngle; a <= anc.endAngle; a++) {
               const isMajor = a % 10 === 0;
@@ -409,7 +422,6 @@ export const CuttingMat = memo(
               const y2 = anc.cy - (rPx - tLen) * sin;
               pD += `M ${x1} ${y1} L ${x2} ${y2} `;
 
-              // Labels on outer ring
               if (isOuterRing && isMajor && a > anc.startAngle && a < anc.endAngle && rPx > 40) {
                 allLabels.push({
                   key: `plbl-${aIdx}-${a}`,
@@ -421,7 +433,6 @@ export const CuttingMat = memo(
             }
           });
 
-          // Guideline Rays
           if (showDiagonals) {
             anc.diagonals.forEach((angle) => {
               const rad = (angle * Math.PI) / 180;
@@ -468,6 +479,10 @@ export const CuttingMat = memo(
         key: string;
         x: number;
         y: number;
+        bx: number;
+        by: number;
+        bw: number;
+        bh: number;
         text: number;
         anchor: "start" | "end" | "middle";
         baseline: "auto" | "middle" | "hanging";
@@ -476,18 +491,31 @@ export const CuttingMat = memo(
       for (let i = 0; i <= stepsX; i++) {
         const x = bxPx + i * majorStepPx;
         const val = i * majorStepUnits;
+        const digitLen = String(val).length;
+        const bw = Math.max(20, digitLen * 8 + 8);
+        const bh = 15;
+
         numbers.push({
           key: `nx-t-${i}`,
           x,
           y: byPx - 16,
+          bx: x - bw / 2,
+          by: byPx - 24,
+          bw,
+          bh,
           text: val,
           anchor: "middle",
           baseline: "auto",
         });
+
         numbers.push({
           key: `nx-b-${i}`,
           x,
           y: hPx - byPx + 24,
+          bx: x - bw / 2,
+          by: hPx - byPx + 17,
+          bw,
+          bh,
           text: val,
           anchor: "middle",
           baseline: "hanging",
@@ -497,18 +525,31 @@ export const CuttingMat = memo(
       for (let j = 0; j <= stepsY; j++) {
         const y = hPx - byPx - j * majorStepPx;
         const val = j * majorStepUnits;
+        const digitLen = String(val).length;
+        const bw = Math.max(20, digitLen * 8 + 8);
+        const bh = 15;
+
         numbers.push({
           key: `ny-l-${j}`,
           x: bxPx - 16,
           y,
+          bx: bxPx - 16 - bw + 2,
+          by: y - bh / 2,
+          bw,
+          bh,
           text: val,
           anchor: "end",
           baseline: "middle",
         });
+
         numbers.push({
           key: `ny-r-${j}`,
           x: wPx - bxPx + 16,
           y,
+          bx: wPx - bxPx + 14,
+          by: y - bh / 2,
+          bw,
+          bh,
           text: val,
           anchor: "start",
           baseline: "middle",
@@ -520,24 +561,24 @@ export const CuttingMat = memo(
 
     // 4. Branding Label Block
     const branding = useMemo(() => {
-      if (!brandingText) return null;
+      if (!showBranding || !brandingText) return null;
 
       let tx = wPx / 2;
       let ty = hPx / 2;
       let anchor: "start" | "end" | "middle" = "middle";
       let align: "auto" | "middle" | "hanging" | "alphabetic" = "middle";
 
-      const paddingX = bxPx + 36;
-      const paddingY = byPx + 36;
+      const paddingX = bxPx + 40;
+      const paddingY = byPx + 40;
 
       if (brandingPosition === "top-left") {
         tx = paddingX;
-        ty = paddingY + 10;
+        ty = paddingY + 12;
         anchor = "start";
         align = "hanging";
       } else if (brandingPosition === "top-right") {
         tx = wPx - paddingX;
-        ty = paddingY + 10;
+        ty = paddingY + 12;
         anchor = "end";
         align = "hanging";
       } else if (brandingPosition === "bottom-left") {
@@ -553,6 +594,17 @@ export const CuttingMat = memo(
       }
 
       const fSize = 22 * brandingSize;
+      const approxW = Math.max(brandingText.length * (fSize * 0.65), 180);
+      const plaqueH = fSize * 2.2;
+      const plaqueW = approxW + 28;
+
+      let plaqueX = tx - plaqueW / 2;
+      if (anchor === "start") plaqueX = tx - 14;
+      if (anchor === "end") plaqueX = tx - plaqueW + 14;
+
+      let plaqueY = ty - plaqueH / 2;
+      if (align === "hanging") plaqueY = ty - 8;
+      if (align === "alphabetic") plaqueY = ty - plaqueH + 8;
 
       return {
         tx,
@@ -560,8 +612,12 @@ export const CuttingMat = memo(
         anchor,
         align,
         fSize,
+        plaqueX,
+        plaqueY,
+        plaqueW,
+        plaqueH,
       };
-    }, [brandingPosition, brandingSize, brandingText, bxPx, byPx, hPx, wPx]);
+    }, [brandingPosition, brandingSize, brandingText, bxPx, byPx, hPx, showBranding, wPx]);
 
     return (
       <svg
@@ -580,7 +636,14 @@ export const CuttingMat = memo(
         }}
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Mat Base Surface with Proportional Corner Radius */}
+        <defs>
+          {/* Subtle realistic drop shadow for stickers */}
+          <filter id="sticker-shadow" x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="3.5" stdDeviation="3.5" floodColor="#000000" floodOpacity="0.45" />
+          </filter>
+        </defs>
+
+        {/* Mat Base Surface */}
         <rect
           width={wPx}
           height={hPx}
@@ -590,7 +653,7 @@ export const CuttingMat = memo(
           strokeWidth={2}
         />
 
-        {/* Double Border Frame with Concentric Inner Curvature */}
+        {/* Double Border Frame */}
         <rect
           x={bxPx}
           y={byPx}
@@ -656,7 +719,7 @@ export const CuttingMat = memo(
           />
         )}
 
-        {/* Protractor Arcs and Degree Ticks */}
+        {/* Protractor Arcs */}
         {protractorPath && (
           <path
             d={protractorPath}
@@ -681,43 +744,78 @@ export const CuttingMat = memo(
 
         {/* Protractor Angle Labels */}
         {protractorLabels.map((lbl) => (
-          <text
-            key={lbl.key}
-            x={lbl.x}
-            y={lbl.y}
-            fill={gridColor}
-            fontSize={10}
-            fontWeight="600"
-            fontFamily={selectedFont}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            opacity={0.8}
-          >
-            {lbl.angle}°
-          </text>
+          <g key={lbl.key}>
+            {labelBackgrounds && (
+              <rect
+                x={lbl.x - 12}
+                y={lbl.y - 8}
+                width={24}
+                height={16}
+                rx={4}
+                fill={matColor}
+                opacity={1}
+              />
+            )}
+            <text
+              x={lbl.x}
+              y={lbl.y}
+              fill={gridColor}
+              fontSize={10}
+              fontWeight="600"
+              fontFamily={selectedFont}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              opacity={0.95}
+            >
+              {lbl.angle}°
+            </text>
+          </g>
         ))}
 
         {/* Ruler Coordinate Numbers */}
         {rulerNumbers.map((num) => (
-          <text
-            key={num.key}
-            x={num.x}
-            y={num.y}
-            fill={gridColor}
-            fontSize={12}
-            fontWeight="bold"
-            fontFamily={selectedFont}
-            textAnchor={num.anchor}
-            dominantBaseline={num.baseline}
-            opacity={0.9}
-          >
-            {num.text}
-          </text>
+          <g key={num.key}>
+            {labelBackgrounds && (
+              <rect
+                x={num.bx}
+                y={num.by}
+                width={num.bw}
+                height={num.bh}
+                rx={3.5}
+                fill={matColor}
+                opacity={1}
+              />
+            )}
+            <text
+              x={num.x}
+              y={num.y}
+              fill={gridColor}
+              fontSize={12}
+              fontWeight="bold"
+              fontFamily={selectedFont}
+              textAnchor={num.anchor}
+              dominantBaseline={num.baseline}
+              opacity={0.95}
+            >
+              {num.text}
+            </text>
+          </g>
         ))}
 
-        {/* Branding Badge */}
+        {/* Branding Plaque */}
         {branding && (
           <g opacity={brandingOpacity}>
+            {labelBackgrounds && (
+              <rect
+                x={branding.plaqueX}
+                y={branding.plaqueY}
+                width={branding.plaqueW}
+                height={branding.plaqueH}
+                rx={8}
+                fill={matColor}
+                opacity={0.95}
+              />
+            )}
             <text
               x={branding.tx}
               y={branding.ty}
@@ -746,12 +844,65 @@ export const CuttingMat = memo(
               textAnchor={branding.anchor}
               dominantBaseline={branding.align}
               letterSpacing="0.08em"
-              opacity={0.75}
+              opacity={0.85}
             >
               SELF-HEALING CUTTING MAT • {width} × {height} {unit.toUpperCase()}
             </text>
           </g>
         )}
+
+        {/* Draggable Stickers & Decals */}
+        {stickers.map((stk) => {
+          const isSelected = stk.id === activeStickerId;
+          const rot = stk.rotation || 0;
+
+          return (
+            <g
+              key={stk.id}
+              className="interactive-sticker"
+              transform={`translate(${stk.x}, ${stk.y}) rotate(${rot})`}
+              filter="url(#sticker-shadow)"
+              style={{ cursor: isSelected ? "grabbing" : "grab", touchAction: "none" }}
+              onPointerDown={(e) => onStickerPointerDown?.(stk.id, e)}
+            >
+              {isSelected && (
+                <rect
+                  x={-stk.size / 2 - 4}
+                  y={-stk.size / 2 - 4}
+                  width={stk.size + 8}
+                  height={stk.size + 8}
+                  fill="none"
+                  stroke="#38bdf8"
+                  strokeWidth={1.5}
+                  strokeDasharray="4 3"
+                  rx={6}
+                />
+              )}
+
+              {stk.type === "emoji" ? (
+                <text
+                  x={0}
+                  y={0}
+                  fontSize={stk.size}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  style={{ userSelect: "none" }}
+                >
+                  {stk.content}
+                </text>
+              ) : (
+                <image
+                  href={stk.content}
+                  x={-stk.size / 2}
+                  y={-stk.size / 2}
+                  width={stk.size}
+                  height={stk.size}
+                  preserveAspectRatio="xMidYMid meet"
+                />
+              )}
+            </g>
+          );
+        })}
       </svg>
     );
   })

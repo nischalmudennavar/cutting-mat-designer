@@ -25,9 +25,9 @@ export function usePanZoom(initialZoom = 0.8, initialX = 100, initialY = 50) {
     // Only left or middle mouse button
     if (e.button !== 0 && e.button !== 1) return;
 
-    // Ignore clicks on floating UI panels
+    // Ignore clicks on floating UI panels or interactive draggable elements
     const target = e.target as HTMLElement;
-    if (target.closest(".interactive-ui")) return;
+    if (target.closest(".interactive-ui") || target.closest(".interactive-sticker")) return;
 
     isDragging.current = true;
     dragStart.current = { x: e.clientX - state.x, y: e.clientY - state.y };
