@@ -39,9 +39,11 @@ Open [http://localhost:3000](http://localhost:3000) to start designing.
 
 ---
 
-## 🤖 For AI Coding Agents
+## 🤖 For AI Coding Agents & LLMs
 
-If you are an AI assistant or autonomous coding agent onboarding to this repository, please read **[CONTEXT.md](./CONTEXT.md)** for critical mathematical invariants, coordinate scaling formulas, and architectural rules.
+* **Agent Context Manual**: **[CONTEXT.md](./CONTEXT.md)**
+* **LLMs Standard Index**: **[`/llms.txt`](./public/llms.txt)**
+* **Full Technical Ingestion**: **[`/llms-full.txt`](./public/llms-full.txt)**
 
 ---
 

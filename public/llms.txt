@@ -1,0 +1,42 @@
+# cutting mat designer
+
+> A high-performance parametric vector studio for designing custom self-healing craft and drafting cutting mats with high-precision grid mathematics, draggable stickers, multi-anchor protractors, and SVG/PDF/PNG exports.
+
+## Core Documentation
+
+- [CONTEXT.md](https://github.com/nischalmudennavar/cutting-mat-designer/blob/main/CONTEXT.md): High-density AI agent operating manual, mathematical domain invariants, and coordinate scaling formulas.
+- [CONTRIBUTING.md](https://github.com/nischalmudennavar/cutting-mat-designer/blob/main/CONTRIBUTING.md): Developer setup, architecture walkthrough, coding standards, and PR workflows.
+- [README.md](https://github.com/nischalmudennavar/cutting-mat-designer/blob/main/README.md): Project overview, feature tour, and quickstart commands.
+
+## Architecture & Mathematical Invariants
+
+- **96 DPI Coordinate Scale**: Calculates physical dimensions into SVG user units: Inches (`* 96`), Metric cm (`* 96 / 2.54`), Fine mm (`* 96 / 25.4`), Pixels (`1.0`).
+- **Symmetric Integer Grid Gap Elimination**: Computes whole cell integer counts ($N_x, N_y$) and derives balanced symmetrical margins ($B_x, B_y$) to guarantee zero fractional border edge gaps.
+- **Protractor Clamping**: Enforces origin-based geometric radius limits ($R_{max}$) to prevent arcs and ray lines from spilling outside mat borders.
+- **Unified Pointer Engine**: Implements pointer capture (`setPointerCapture`) and state machine partitioning (`idle`, `panning`, `dragging-sticker`) to prevent drag/pan interference.
+- **Compound SVG GPU Tessellation**: Concatenates major grids, subdivisions, ticks, and protractor guidelines into 5 compound `<path>` nodes instead of thousands of discrete DOM elements.
+
+## Astryx Component Primitives (`src/components/ui/`)
+
+- `Modal.tsx`: Dark glassmorphic dialog with backdrop blur, escape key, and backdrop dismiss.
+- `Dropdown.tsx`: Custom floating glass popover with checkmarks and outside click dismissal.
+- `Switch.tsx`: Animated sliding thumb toggle switch.
+- `ColorPicker.tsx`: Color swatch preview trigger with hex value badge.
+- `NumberInput.tsx`: Stepper numeric input with `+` / `-` increment buttons.
+- `SegmentedControl.tsx`: Active pill tab selector for units and border radius modes.
+- `Slider.tsx`: Custom range slider with dynamic live value readout.
+- `Button.tsx`: Atomic button supporting primary, secondary, outline, ghost, icon, and danger variants.
+- `Accordion.tsx`: Collapsible accordion card with chevron state.
+
+## Operational Commands
+
+- `npm run dev`: Starts local development server with Turbopack.
+- `npm run build`: Compiles production build with strict TypeScript type checking.
+- `npm run start`: Launches production server.
+- `npm run lint`: Runs ESLint checks.
+
+## Author & Community
+
+- Author: [Nischal Mudennavar](https://nischal.dev)
+- GitHub Repository: [https://github.com/nischalmudennavar/cutting-mat-designer](https://github.com/nischalmudennavar/cutting-mat-designer)
+- Extended Full Context: [/llms-full.txt](https://cutting-mat-designer.vercel.app/llms-full.txt)

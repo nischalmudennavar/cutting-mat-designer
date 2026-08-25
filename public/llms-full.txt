@@ -1,0 +1,103 @@
+# cutting mat designer — Full Extended Technical Context
+
+> A high-performance parametric vector studio for designing custom self-healing craft and drafting cutting mats with high-precision grid mathematics, draggable stickers, multi-anchor protractors, and SVG/PDF/PNG exports.
+
+---
+
+## 1. Executive Summary & Tech Stack
+
+* **Framework**: Next.js 16 (App Router, Turbopack, React 19)
+* **Language**: TypeScript (Strict Mode)
+* **Styling**: Tailwind CSS v4
+* **Design System**: Meta Astryx-inspired modular component primitives (`src/components/ui/`)
+* **Export Pipeline**: Native SVG serialization, 300 DPI HTML5 Canvas rasterization (`.png`, `.jpg`), and physical-scale `jspdf` (`.pdf`)
+* **Author**: [Nischal Mudennavar](https://nischal.dev)
+* **GitHub**: [https://github.com/nischalmudennavar/cutting-mat-designer](https://github.com/nischalmudennavar/cutting-mat-designer)
+
+---
+
+## 2. Mathematical Domain Formulations
+
+### A. Coordinate Scaling Standard (96 DPI)
+All internal calculations use the standard 96 DPI system:
+* `in` (Inches): `width * 96`
+* `cm` (Centimeters): `width * (96 / 2.54)`
+* `mm` (Millimeters): `width * (96 / 25.4)`
+* `px` (Pixels): `width * 1.0`
+
+### B. Symmetrical Integer Grid Gap Elimination
+To eliminate asymmetrical grid trailing spaces and preserve standard physical crafting increments:
+```
+stepsX = floor((wPx - 2 * minBorderPx) / majorStepPx)
+stepsY = floor((hPx - 2 * minBorderPx) / majorStepPx)
+
+bxPx = (wPx - stepsX * majorStepPx) / 2
+byPx = (hPx - stepsY * majorStepPx) / 2
+```
+* **Guarantee**: Grid lines always form whole, 100% square cells with equalized symmetric margins on top/bottom and left/right.
+
+### C. Protractor Anchor Geometry & Radius Clamping
+Protractor layouts support 5 distinct repeat modes:
+1. **Single Origin**: Positioned at bottom-center, center, bottom-left, or bottom-right.
+2. **Dual Bottom Corners**: 0°–90° arc at bottom-left ($x=B_x, y=H-B_y$) and 90°–180° arc at bottom-right ($x=W-B_x, y=H-B_y$).
+3. **4 Corners (All Quadrants)**: 4 quadrant arcs spanning all 4 grid corners.
+4. **Dual Center**: Dual 180° protractors along top and bottom horizontal centerlines.
+5. **Multi-Ring Concentric Arcs**: Nested concentric protractor rings scaled at 100%, 66%, and 33% radius.
+
+Radius is clamped geometrically according to anchor position:
+```
+R_max = position == "center" ? min((W - 2B) / 2, (H - 2B) / 2)
+      : position == "bottom-center" ? min((W - 2B) / 2, H - 2B)
+      : min(W - 2B, H - 2B)
+```
+
+### D. Pan, Zoom & Sticker Pointer Drag
+Cursor to mat space translation:
+```
+x_mat = (clientX - canvasX) / zoom
+y_mat = (clientY - canvasY) / zoom
+```
+Stickers are constrained within the board boundaries $[size/2, W_{px} - size/2]$ and $[size/2, H_{px} - size/2]$. Pointer capture (`setPointerCapture`) guarantees uninterrupted dragging even during rapid swipes.
+
+### E. Compound SVG GPU Path Concatenation
+Grid lines, subdivisions, and technical ticks are compiled into unified `<path d="M...L..." />` strings. This replaces over 1,500 individual `<line>` elements with 5 GPU-accelerated path buffers.
+
+---
+
+## 3. Astryx UI Component System (`src/components/ui/`)
+
+* **`Modal.tsx`**: Backdrop blur overlay, keyboard Escape handler, animated card container.
+* **`Dropdown.tsx`**: Custom floating popover menu with checkmark indicators and click-outside dismissal.
+* **`Switch.tsx`**: Sliding thumb toggle pill with label and optional description.
+* **`ColorPicker.tsx`**: Swatch trigger button with uppercase `#HEX` badge and hidden native color picker.
+* **`NumberInput.tsx`**: Numeric field with embedded `+` / `-` stepper buttons.
+* **`SegmentedControl.tsx`**: Gliding pill tab control.
+* **`Slider.tsx`**: Horizontal track slider with live formatted value badge.
+* **`Button.tsx`**: Atomic button with multiple variants (`primary`, `secondary`, `outline`, `ghost`, `danger`, `icon`).
+* **`Accordion.tsx`**: Expandable card panel with header icon, title, and animated chevron.
+
+---
+
+## 4. Multi-Format Export Architecture
+
+* **SVG Vector**: Extracted via `XMLSerializer`, namespace validated (`xmlns`, `xmlns:xlink`), exported as clean standalone vector file.
+* **Raster (PNG / JPG)**: Rendered to an in-memory high-resolution `<canvas>` scaled to 300 DPI print standards.
+* **Physical PDF**: Dynamically imports `jspdf` on the client, converts canvas to PNG stream, computes physical dimensions in points (`72 pt/in`), and exports exact-scale multi-page PDF documents.
+
+---
+
+## 5. Development & CI Commands
+
+```bash
+# Start local Turbopack server
+npm run dev
+
+# Production build and typecheck
+npm run build
+
+# Start production server
+npm run start
+
+# ESLint audit
+npm run lint
+```
